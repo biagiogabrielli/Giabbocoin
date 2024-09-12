@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classifica Giabbocoin</title>
+    <style>
+        /* Il tuo stile esattamente come lo hai scritto */
+    </style>
+</head>
+<body>
+
+<div class="classifica-container">
+    <h1>Classifica Giabbocoin</h1>
+    
+    <!-- Tabella della classifica -->
+    <table id="classifica-table">
+        <tr>
+            <th>Nome Utente</th>
+            <th>Giabbocoin</th>
+        </tr>
+    </table>
+
+    <!-- Modulo per accedere all'area di modifica -->
+    <div id="password-container">
+        <input type="text" id="nome-utente" placeholder="Nome Utente">
+        <input type="number" id="giabbocoin" placeholder="Giabbocoin">
+        <div class="action-buttons">
+            <button onclick="aggiungiPunteggio()">Aggiungi/Modifica Punteggio</button>
+            <button onclick="ordinaClassifica()">Ordina per punteggio</button>
+        </div>
+    </div>
+
+    <!-- Sezione per inserire la password -->
+    <div id="login-container">
+        <input type="password" id="password" placeholder="Inserisci la password">
+        <button onclick="verificaPassword()">Accedi</button>
+    </div>
+</div>
+
+<script type="module">
+    // Importa le funzioni necessarie da Firebase e Firestore
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc, query, where, updateDoc, orderBy, doc } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+
+    // La configurazione di Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyBSUvrMqXTUagyDAv3BaJPH6ZAltlGpdJ0",
+        authDomain: "giabbocoin-3a477.firebaseapp.com",
+        projectId: "giabbocoin-3a477",
+        storageBucket: "giabbocoin-3a477.appspot.com",
+        messagingSenderId: "341005315550",
+        appId: "1:341005315550:web:5f4d5b8d2d9c045c5c014f"
+    };
+
+    // Inizializza Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Funzione per verificare la password
+    const passwordCorretta = "giabbocoin123";
+    function verificaPassword() {
+        const passwordInserita = document.getElementById('password').value;
+        if (passwordInserita === passwordCorretta) {
+            document.getElementById('password-container').style.display = 'block';
+            document.getElementById('login-container').style.display = 'none';
+            caricaClassifica();
+        } else {
+            alert('Password errata!');
+        }
+    }
+
+    // Funzione per caricare la classifica da Firestore
+    async function caricaClassifica() {
+        const table = document.getElementById('classifica-table');
+        while (table.rows.length > 1) {
+            table.deleteRow(1);
+        }
+
+        const querySnapshot = await getDocs(collection(db, "classifica"));
+        querySnapshot.forEach((doc) => {
+            const row = table.insertRow();
+            const cellNome = row.insertCell(0);
+            const cellPunteggio = row.insertCell(1);
+            cellNome.textContent = doc.data().nome;
+            cellPunteggio.textContent = doc.data().giabbocoin;
+        });
+    }
+
+    // Funzione per aggiungere o modificare un punteggio in Firestore
+    async function aggiungiPunteggio() {
+        const nome = document.getElementById('nome-utente').value;
+        const giabbocoin = document.getElementById('giabbocoin').value;
+
+        // Controlla se l'utente esiste già
+        const q = query(collection(db, "classifica"), where("nome", "==", nome));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+            // Se l'utente esiste già, aggiorna il punteggio
+            querySnapshot.forEach(async (docSnapshot) => {
+                const docRef = doc(db, "classifica", docSnapshot.id);
+                await updateDoc(docRef, { giabbocoin: Number(giabbocoin) });
+            });
+        } else {
+            // Se l'utente non esiste, aggiungi un nuovo documento
+            await addDoc(collection(db, "classifica"), { nome: nome, giabbocoin: Number(giabbocoin) });
+        }
+
+        caricaClassifica();
+    }
+
+    // Funzione per ordinare la classifica
+    async function ordinaClassifica() {
+        const q = query(collection(db, "classifica"), orderBy("giabbocoin", "desc"));
+        const querySnapshot = await getDocs(q);
+
+        const table = document.getElementById('classifica-table');
+        while (table.rows.length > 1) {
+            table.deleteRow(1);
+        }
+
+        querySnapshot.forEach((doc) => {
+            const row = table.insertRow();
+            const cellNome = row.insertCell(0);
+            const cellPunteggio = row.insertCell(1);
+            cellNome.textContent = doc.data().nome;
+            cellPunteggio.textContent = doc.data().giabbocoin;
+        });
+    }
+
+    // Carica la classifica quando la pagina viene caricata
+    window.onload = caricaClassifica;
+</script>
+
+</body>
+</html>
